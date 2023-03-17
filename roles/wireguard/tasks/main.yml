@@ -1,0 +1,62 @@
+---
+- name: Install Wireguard.
+  package:
+    name: "{{ wireguard_package }}"
+    state: present
+
+- name: Allowing traffic forwarding ipv4.
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: yes
+
+- name: Get interface name.
+  shell: ip -o -4 route show to default | awk '{print $5}'
+  register: interface
+
+- name: Generate private and public keys.
+  shell: wg genkey | tee {{ wireguard_config_files_path }}/private{{ item }}.key | wg pubkey | tee {{ wireguard_config_files_path }}/public{{ item }}.key
+  with_sequence: start=0 end={{ wireguard_clients }}
+
+- name: Register private key file contents.
+  shell: cat {{ wireguard_config_files_path }}/private{{ item }}.key
+  register: private_key_files
+  with_sequence: start=0 end={{ wireguard_clients }}
+
+- name: Register public key file contents.
+  shell: cat {{ wireguard_config_files_path }}/public{{ item }}.key
+  register: public_key_files
+  with_sequence: start=0 end={{ wireguard_clients }}
+
+- name: Stop Wireguard service.
+  systemd:
+    name: "{{ wireguard_service }}"
+    state: stopped
+
+- name: Copy Wireguard configuration.
+  template:
+    src: wg0.conf.j2
+    dest: "{{ wireguard_config_files_path }}/wg0.conf"
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Ensure Wireguard is started and enabled at boot.
+  systemd:
+    name: "{{ wireguard_service }}"
+    enabled: yes
+    state: started
+
+- name: Register the clients on the Wireguard server.
+  shell: wg set wg0 peer {{ public_key_files.results[item|int].stdout }} allowed-ips {{ private_network }}.{{item|int + 1}}/32
+  with_sequence: start=1 end={{ wireguard_clients }}
+  notify: restart {{ wireguard_service }}
+
+- name: Generate client configs and saving to localhost.
+  template:
+    src: wg0-client.conf.j2
+    dest: "wg-profiles/wg0-client{{ item }}.conf"
+  with_sequence: start=1 end={{ wireguard_clients }}
+  delegate_to: localhost
+  become: false

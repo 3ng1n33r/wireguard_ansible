@@ -1,0 +1,9 @@
+---
+  - name: restart systemd-resolved
+    service:
+      name=systemd-resolved.service
+      state=restarted
+  - name: restart {{ unbound_service }}
+    service:
+      name={{ unbound_service }}
+      state=restarted

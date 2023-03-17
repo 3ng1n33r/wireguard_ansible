@@ -1,0 +1,58 @@
+---
+- name: Install Unbound.
+  package:
+    name: "{{ unbound_package }}"
+    state: present
+
+- name: Download the list of root DNS servers.
+  get_url:
+    url: https://www.internic.net/domain/named.cache
+    dest: /var/lib/unbound/root.hints
+    owner: unbound
+    group: unbound
+
+- name: Generate Unbound config.
+  template:
+    src: "{{ unbound_config_template }}"
+    dest: "{{ unbound_config_file_path }}"
+  notify: restart {{ unbound_service }}
+
+- name: Check systemd-resolved config exist.
+  stat:
+    path: /etc/systemd/resolved.conf
+  register: resolved_check
+
+- name: Turn off systemd-resolved.
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^DNSStubListener='
+    line: 'DNSStubListener=no'
+    create: no
+  register: remove_resolved
+  when: resolved_check.stat.exists
+  notify: restart systemd-resolved
+
+- name: Delete the resolved-symlinked resolv.conf.
+  file:
+    path: "/etc/resolv.conf"
+    state: absent
+  when: remove_resolved.changed
+
+- name: Enable and start Unbound service.
+  systemd:
+    name: "{{ unbound_service }}"
+    enabled: yes
+    state: started
+
+- name: Configure the system to use the local unbound DNS.
+  lineinfile:
+    path: /etc/resolv.conf
+    regexp: '^nameserver'
+    line: 'nameserver 127.0.0.1'
+    create: yes
+
+handlers:
+  - name: restart systemd-resolved
+    ansible.builtin.service:
+      name: systemd-resolved
+      state: restarted
