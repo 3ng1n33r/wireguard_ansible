@@ -3,4 +3,4 @@ unbound_package: unbound
 unbound_service: unbound.service
 
 unbound_config_file_path: /etc/unbound/unbound.conf
-unbound_config_template: unbound.conf
+unbound_config_template: unbound.conf.j2

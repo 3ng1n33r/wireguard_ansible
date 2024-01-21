@@ -1,11 +1,10 @@
 ---
-    - name: Install and configure Wireguard. 
-      hosts: wireguard
-      become: true
-      vars:
-        wireguard_clients: 4
-        private_network: '172.16.0'
+- name: Install and configure Wireguard. 
+  hosts: all
+  become: true
+  vars:
+    wireguard_clients: 10
 
-      roles:
-        - unbound
-        - wireguard
+  roles:
+    - unbound
+    - wireguard

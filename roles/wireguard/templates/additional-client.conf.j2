@@ -1,0 +1,10 @@
+[Interface]
+Address = {{ private_network }}.{{ peer_id.stdout | int + 2 }}/32
+DNS = {{ private_network }}.1
+PrivateKey = {{ private_key_file.stdout }}
+
+[Peer]
+PublicKey = {{ public_key_file0.stdout }}
+AllowedIPs = 0.0.0.0/0
+Endpoint = {{ ansible_default_ipv4.address }}:{{ wireguard_port }}
+PersistentKeepalive = 25

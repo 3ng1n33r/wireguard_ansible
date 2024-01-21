@@ -1,0 +1,66 @@
+---
+#ansible-playbook -u user -i host, playbook.yml --tags wg_peer_add
+- name: Check server public key exist.
+  stat:
+    path: "{{ wireguard_config_files_path }}/public0.key"
+  register: public_key_file0_check
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Register server public key file content.
+  shell: cat {{ wireguard_config_files_path }}/public0.key
+  register: public_key_file0
+  when: public_key_file0_check.stat.exists
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Get latest peer key.
+  shell: ls {{ wireguard_config_files_path }} | sed -e s/[^0-9]//g | sort -nr | head -n1
+  register: peer_id
+  when: public_key_file0_check.stat.exists
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Generate private and public keys.
+  shell: wg genkey | tee {{ wireguard_config_files_path }}/private{{ peer_id.stdout | int + 1 }}.key | wg pubkey | tee {{ wireguard_config_files_path }}/public{{ peer_id.stdout | int + 1 }}.key
+  when: public_key_file0_check.stat.exists
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Register private key file content.
+  shell: cat {{ wireguard_config_files_path }}/private{{ peer_id.stdout | int + 1 }}.key
+  register: private_key_file
+  when: public_key_file0_check.stat.exists
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Register public key file content.
+  shell: cat {{ wireguard_config_files_path }}/public{{ peer_id.stdout | int + 1 }}.key
+  register: public_key_file
+  when: public_key_file0_check.stat.exists
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Register the clients on the Wireguard server.
+  shell: wg set wg0 peer {{ public_key_file.stdout }} allowed-ips {{ private_network }}.{{ peer_id.stdout | int + 2 }}/32
+  notify: restart {{ wireguard_service }}
+  when: public_key_file0_check.stat.exists
+  tags:
+    - wg_peer_add
+    - never
+
+- name: Generate client configs and saving to localhost.
+  template:
+    src: additional-client.conf.j2
+    dest: "wg-profiles/wg0-client{{ peer_id.stdout | int + 1 }}.conf"
+  delegate_to: localhost
+  become: false
+  tags:
+    - wg_peer_add
+    - never

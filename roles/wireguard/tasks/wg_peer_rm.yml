@@ -1,0 +1,37 @@
+---
+#ansible-playbook -u user -i host, playbook.yml --tags wg_peer_rm --extra-vars "peer_id=1"
+- name: Check peer exist.
+  stat:
+    path: "{{ wireguard_config_files_path }}/public{{ peer_id }}.key"
+  register: peer_check
+  tags:
+    - wg_peer_rm
+    - never
+
+- name: Register public key file content.
+  shell: cat {{ wireguard_config_files_path }}/public{{ peer_id }}.key
+  register: public_key_file
+  when: peer_check.stat.exists
+  tags:
+    - wg_peer_rm
+    - never
+
+- name: Remove the client on the Wireguard server.
+  shell: wg set wg0 peer {{ public_key_file.stdout }} remove
+  notify: restart {{ wireguard_service }}
+  when: peer_check.stat.exists
+  tags:
+    - wg_peer_rm
+    - never
+
+- name: Remove private and public keys.
+  file:
+    path: "{{ item }}"
+    state: absent
+  when: peer_check.stat.exists
+  with_items:
+    - "{{ wireguard_config_files_path }}/public{{ peer_id }}.key"
+    - "{{ wireguard_config_files_path }}/private{{ peer_id }}.key"
+  tags:
+    - wg_peer_rm
+    - never

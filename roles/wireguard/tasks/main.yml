@@ -1,8 +1,19 @@
 ---
+- include_tasks: wg_peer_add.yml
+  tags:
+    - wg_peer_add
+
+- include_tasks: wg_peer_rm.yml
+  tags:
+    - wg_peer_rm
+
 - name: Install Wireguard.
   package:
     name: "{{ wireguard_package }}"
     state: present
+  tags:
+    - wg_init
+    - never
 
 - name: Allowing traffic forwarding ipv4.
   sysctl:
@@ -10,29 +21,47 @@
     value: "1"
     state: present
     reload: yes
+  tags:
+    - wg_init
+    - never
 
 - name: Get interface name.
   shell: ip -o -4 route show to default | awk '{print $5}'
   register: interface
+  tags:
+    - wg_init
+    - never
 
 - name: Generate private and public keys.
   shell: wg genkey | tee {{ wireguard_config_files_path }}/private{{ item }}.key | wg pubkey | tee {{ wireguard_config_files_path }}/public{{ item }}.key
   with_sequence: start=0 end={{ wireguard_clients }}
+  tags:
+    - wg_init
+    - never
 
 - name: Register private key file contents.
   shell: cat {{ wireguard_config_files_path }}/private{{ item }}.key
   register: private_key_files
   with_sequence: start=0 end={{ wireguard_clients }}
+  tags:
+    - wg_init
+    - never
 
 - name: Register public key file contents.
   shell: cat {{ wireguard_config_files_path }}/public{{ item }}.key
   register: public_key_files
   with_sequence: start=0 end={{ wireguard_clients }}
+  tags:
+    - wg_init
+    - never
 
 - name: Stop Wireguard service.
   systemd:
     name: "{{ wireguard_service }}"
     state: stopped
+  tags:
+    - wg_init
+    - never
 
 - name: Copy Wireguard configuration.
   template:
@@ -41,17 +70,26 @@
     owner: root
     group: root
     mode: 0600
+  tags:
+    - wg_init
+    - never
 
 - name: Ensure Wireguard is started and enabled at boot.
   systemd:
     name: "{{ wireguard_service }}"
     enabled: yes
     state: started
+  tags:
+    - wg_init
+    - never
 
 - name: Register the clients on the Wireguard server.
   shell: wg set wg0 peer {{ public_key_files.results[item|int].stdout }} allowed-ips {{ private_network }}.{{item|int + 1}}/32
   with_sequence: start=1 end={{ wireguard_clients }}
   notify: restart {{ wireguard_service }}
+  tags:
+    - wg_init
+    - never
 
 - name: Generate client configs and saving to localhost.
   template:
@@ -60,3 +98,6 @@
   with_sequence: start=1 end={{ wireguard_clients }}
   delegate_to: localhost
   become: false
+  tags:
+    - wg_init
+    - never
