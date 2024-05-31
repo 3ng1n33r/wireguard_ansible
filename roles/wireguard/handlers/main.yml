@@ -1,5 +1,5 @@
 ---
   - name: restart {{ wireguard_service }}
     service:
-      name={{ wireguard_service }}
-      state=restarted
+      name: "{{ wireguard_service }}"
+      state: restarted
