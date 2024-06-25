@@ -1,47 +1,89 @@
 server:
-
+  # Performance Tuning and Tweak
+  # https://unbound.docs.nlnetlabs.nl/en/latest/topics/core/performance.html
+  # use all CPUs
   num-threads: 1
+  
+  # power of 2 close to num-threads
+  msg-cache-slabs: 2
+  rrset-cache-slabs: 2
+  infra-cache-slabs: 2
+  key-cache-slabs: 2
+  
+  # more cache memory, rrset=msg*2
+  rrset-cache-size: 100m
+  msg-cache-size: 50m
+  
+  # more outgoing connections
+  # depends on number of cores: 1024/cores - 50
+  outgoing-range: 950
+  
+  # Larger socket buffer.  OS may need config.
+  #so-rcvbuf: 4m
+  #so-sndbuf: 4m
+
+  # Faster UDP with multithreading (only on Linux).
+  so-reuseport: yes
+  
+  chroot: ""
   username: unbound
-  #Enable logs
+  
+  # Enable logs
   verbosity: 1
 
-  #list of Root DNS Server
+  # List of Root DNS Server
   root-hints: "/var/lib/unbound/root.hints"
 
-  #Use the root servers key for DNSSEC
+  # Use the root servers key for DNSSEC
   auto-trust-anchor-file: "/var/lib/unbound/root.key"
 
-  #Respond to DNS requests on all interfaces
+  # Respond to DNS requests on all interfaces
   interface: 0.0.0.0
-  max-udp-size: 3072
 
-  #Authorized IPs to access the DNS Server
+  # Authorized IPs to access the DNS Server
   access-control: 0.0.0.0/0                 refuse
   access-control: 127.0.0.1                 allow
   access-control: {{ private_network }}.0/24	   		allow
 
-  #not allowed to be returned for public internet  names
+  # Not allowed to be returned for public internet names
   private-address: {{ private_network }}.0/24
 
-  # Hide DNS Server info
+  # Unbound Privacy and Security
   hide-identity: yes
   hide-version: yes
+  use-caps-for-id: yes
      
-  #Limit DNS Fraud and use DNSSEC
+  # Limit DNS Fraud and use DNSSEC
   harden-glue: yes
   harden-dnssec-stripped: yes
   harden-referral-path: yes
 
-  #Add an unwanted reply threshold to clean the cache and avoid when possible a DNS Poisoning
+  # Add an unwanted reply threshold to clean the cache and avoid when possible a DNS Poisoning
   unwanted-reply-threshold: 10000000
 
-  #Have the validator print validation failures to the log.
+  # Have the validator print validation failures to the log.
   val-log-level: 1
-
-  #Minimum lifetime of cache entries in seconds
+  
+  # DNS Cache
+  # Minimum lifetime of cache entries in seconds
   cache-min-ttl: 1800	
-
-  #Maximum lifetime of cached entries
+  # Maximum lifetime of cached entries
   cache-max-ttl: 14400
+
+  # Prefetch: set to 'yes' to enable prefetching of almost expired message cache entries.
   prefetch: yes
   prefetch-key: yes
+
+remote-control:
+  # Enable remote control with unbound-control(8) here.
+  control-enable: no
+
+  # what interfaces are listened to for remote control.
+  # give 0.0.0.0 and ::0 to listen to all interfaces.
+  # set to an absolute path to use a unix local name pipe, certificates
+  # are not used for that, so key and cert files need not be present.
+  control-interface: 127.0.0.1
+  # control-interface: ::1
+
+  # port number for remote control operations.
+  control-port: 8953

@@ -1,0 +1,58 @@
+---
+#https://unbound.docs.nlnetlabs.nl/en/latest/use-cases/local-stub.html
+
+- name: Configuring the Local Stub resolver.
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#DNSStubListener='
+    line: 'DNSStubListener=no'
+    create: no
+  notify: restart systemd-resolved
+  tags:
+    - wg_init
+    - dns
+    - never
+
+- name: Configure the system to use the local unbound DNS.
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#DNS='
+    line: 'DNS=127.0.0.1'
+    create: no
+  register: dns_resolved
+  notify: restart systemd-resolved
+  tags:
+    - wg_init
+    - dns
+    - never
+
+- name: Enable the DNSSEC option.
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: '^#DNSSEC='
+    line: 'DNSSEC=yes'
+    create: no
+  notify: restart systemd-resolved
+  tags:
+    - wg_init
+    - dns
+    - never
+
+- name: Create a symlink to overwrite /etc/resolv.conf.
+  file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+  when: dns_resolved.changed
+  notify: restart systemd-resolved
+  tags:
+    - wg_init
+    - dns
+    - never
+
+- name: Force all notified handlers to run at this point.
+  meta: flush_handlers
+  tags:
+    - wg_init
+    - dns
+    - never
