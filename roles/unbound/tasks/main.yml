@@ -1,8 +1,9 @@
 ---
 - name: Install Unbound.
-  package:
+  apt:
     name: "{{ unbound_package }}"
     state: present
+    update_cache: yes
   tags:
     - wg_init
     - dns

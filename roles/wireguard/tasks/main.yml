@@ -8,9 +8,13 @@
     - wg_peer_rm
 
 - name: Install Wireguard.
-  package:
-    name: "{{ wireguard_package }}"
+  apt:
+    name: "{{ item }}"
     state: present
+    update_cache: yes
+  with_items:
+    - "{{ wireguard_package }}"
+    - iptables
   tags:
     - wg_init
     - never
