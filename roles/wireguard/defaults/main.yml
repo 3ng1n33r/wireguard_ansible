@@ -1,7 +1,4 @@
 ---
-wireguard_port: 2408
-private_network: '172.16.0'
-
 wireguard_package: wireguard
 wireguard_service: wg-quick@wg0.service
 

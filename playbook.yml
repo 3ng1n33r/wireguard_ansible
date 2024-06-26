@@ -4,6 +4,8 @@
   become: true
   vars:
     wireguard_clients: 10
+    wireguard_port: 2408
+    private_network: '172.16.0'
 
   roles:
     - unbound
