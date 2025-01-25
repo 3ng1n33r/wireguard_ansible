@@ -1,5 +1,4 @@
 ---
-wireguard_package: wireguard
 wireguard_service: wg-quick@wg0.service
 
 wireguard_config_files_path: '/etc/wireguard'

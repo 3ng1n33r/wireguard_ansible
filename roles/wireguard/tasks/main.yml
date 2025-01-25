@@ -9,12 +9,11 @@
 
 - name: Install Wireguard.
   apt:
-    name: "{{ item }}"
+    name:
+      - wireguard
+      - iptables
     state: present
     update_cache: yes
-  with_items:
-    - "{{ wireguard_package }}"
-    - iptables
   tags:
     - wg_init
     - never

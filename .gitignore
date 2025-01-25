@@ -1,1 +1,3 @@
 test/
+wg-profiles*
+!wg-profiles/generate_qr.sh
