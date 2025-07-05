@@ -3,9 +3,11 @@
   hosts: all
   become: true
   vars:
-    wireguard_clients: 10
-    wireguard_port: 2408
-    private_network: '172.16.0'
+    wireguard_clients: 5
+    wireguard_port: 3497
+    wireguard_mtu: 1420
+    private_network: '10.2.0'
+    wireguard_client_port: 16387
 
   roles:
     - unbound

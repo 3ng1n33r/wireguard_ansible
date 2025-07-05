@@ -2,6 +2,8 @@
 Address = {{ private_network }}.{{ peer_id.stdout | int + 2 }}/32
 DNS = {{ private_network }}.1
 PrivateKey = {{ private_key_file.stdout }}
+ListenPort = {{ wireguard_client_port }}
+MTU = {{ wireguard_mtu }}
 
 [Peer]
 PublicKey = {{ public_key_file0.stdout }}
